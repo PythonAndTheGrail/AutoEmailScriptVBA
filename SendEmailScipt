@@ -1,0 +1,86 @@
+Sub Send_Email_Function()
+'Working in Excel 2000-2016
+'This cycles through a worksheet and sends email reminders when due dates have not been met.
+'For Tips see: http://www.rondebruin.nl/win/winmail/Outlook/tips.htm
+'https://www.rondebruin.nl/win/s1/outlook/amail1.htm -- See example 1
+'https://www.techonthenet.com/excel/formulas/for_next.php
+'https://www.techonthenet.com/excel/formulas/if_then.php
+'https://www.techonthenet.com/excel/macros/index.php
+'https://www.youtube.com/watch?v=Em4RCvsAV7s
+
+'Establish Variables and types
+Dim OutApp As Object
+Dim OutMail As Object
+Dim RecEmail As String
+Dim AgmtNum As String
+Dim AgmtProduct As String
+Dim AgmtDate As String
+Dim i As Integer
+Dim columnCount As Integer
+Dim ws As Worksheet
+Dim cboVal1 As ComboBox
+
+'Pull the worksheet value from cboBox1 to email to correct contract
+''Set ws = Worksheets("Main")
+''Set cboVal1 = ws.OLEObjects("ComboBox1").Object
+''cboVal1 = cboVal1.Value
+''cboVal1_str = CStr(cboVal1)
+''Sheets("Main").Cells(1, 2) = cboVal1
+''Set ws = Worksheets("cboVal1")
+
+For Each ws In Worksheets
+
+'Create mail objects, outapp is an object that opens/uses the outlook application
+Set OutApp = CreateObject("Outlook.Application")
+'Set OutMail = OutApp.CreateItem(0)
+
+columnCount = 1000 'ws.CountIf("D:D" <> "")
+RecipientEmail = ws.Cells(3, 3).Value
+AgmtNum = ws.Cells(2, 3).Value
+    
+'Loop through each cell in column 14 to check if value is 1 or 0, collect agmt product and due date if past due
+    For i = 6 To columnCount
+        If ws.Cells(i, 3).Value < Now() And ws.Cells(i, 4).Value <> "Received" And ws.Cells(i, 3).Value <> "" Then
+        ProductDate = ws.Cells(i, 3).Value
+        AgmtProduct = AgmtProduct & vbCrLf & ws.Cells(i, 2).Value & " due on " & ProductDate
+        End If
+      
+    Next i
+      
+    On Error Resume Next
+    
+'Include this information in the body of the email being sent in code below
+    mailMessage = "**This is an automated message**" + vbCrLf + vbCrLf + " " + _
+                    "Your grant agreement for " & AgmtNum + " has overdue deliverables." + vbCrLf & _
+                    AgmtProduct + " " + vbCrLf + vbCrLf & _
+                    "Please contact CAM to provide deliverable status." + " " + vbCrLf + vbCrLf & _
+                    "*Invoices will not be processed prior to providing deliverable feedback*"
+           
+    If AgmtProduct <> "" Then
+'Send mail to recipient with the following information
+        Set OutMail = OutApp.CreateItem(0)
+                With OutMail
+    '                .To = ""
+    '                .CC = ""
+                    .BCC = RecipientEmail
+                    .Subject = AgmtNum + " " + "Deliverable Auto-Reminder"
+                    .Body = mailMessage
+                    '.Attachments.Add ActiveWorkbook.FullName
+                    'You can add other files also like this
+                    '.Attachments.Add ("C:\test.txt")
+                    .Send   'or use .Display
+                End With
+    '                On Error GoTo 0
+    End If
+'Wait 3 seconds then increment i for looping
+'    Application.Wait (Now + TimeValue("0:00:3"))
+    
+'Clean up Outmail and OutApp and agreement date and product for next email
+    AgmtDate = ""
+    AgmtProduct = ""
+    Set OutMail = Nothing
+    Set OutApp = Nothing
+    
+Next ws
+
+End Sub
